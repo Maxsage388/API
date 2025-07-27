@@ -1,52 +1,37 @@
 from flask import Flask, request, jsonify
-import os
 import requests
+import os
 
 app = Flask(__name__)
-API_KEY = os.getenv("API_KEY")
-GOOGLE_KEY = os.getenv("GOOGLE_SAFE_BROWSING_KEY")
+API_KEY = os.getenv("GOOGLE_API_KEY")
 
-def is_url_safe(url):
-    endpoint = f"https://safebrowsing.googleapis.com/v4/threatMatches:find?key={GOOGLE_KEY}"
-    payload = {
-        "client": {
-            "clientId": "render-api",
-            "clientVersion": "1.0"
-        },
+@app.route('/check', methods=['POST'])
+def check_url():
+    data = request.get_json()
+    url = data.get("url")
+
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+
+    safe_browsing_url = "https://safebrowsing.googleapis.com/v4/threatMatches:find?key=" + API_KEY
+    body = {
+        "client": {"clientId": "url-checker", "clientVersion": "1.0"},
         "threatInfo": {
-            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"],
+            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING"],
             "platformTypes": ["ANY_PLATFORM"],
             "threatEntryTypes": ["URL"],
             "threatEntries": [{"url": url}]
         }
     }
 
-    res = requests.post(endpoint, json=payload)
+    res = requests.post(safe_browsing_url, json=body)
     if res.status_code != 200:
-        return None
-    return res.json() == {}
+        return jsonify({"error": "API request failed"}), 500
 
-@app.route("/check", methods=["POST"])
-def check():
-    user_key = request.headers.get("Authorization")
-    if user_key != API_KEY:
-        return jsonify({"error": "Unauthorized"}), 401
+    if res.json().get("matches"):
+        return jsonify({"safe": False, "message": "⚠️ Not Safe"})
+    else:
+        return jsonify({"safe": True, "message": "✅ Safe"})
 
-    data = request.json
-    url = data.get("url")
-    if not url:
-        return jsonify({"error": "URL required"}), 400
-
-    safe = is_url_safe(url)
-    if safe is None:
-        return jsonify({"error": "API error"}), 500
-
-    return jsonify({
-        "url": url,
-        "safe": safe,
-        "message": "✅ Safe" if safe else "❌ Not Safe"
-    })
-
-@app.route("/")
-def home():
-    return jsonify({"message": "URL Safety API Running."})
+if __name__ == '__main__':
+    app.run()
