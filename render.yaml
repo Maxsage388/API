@@ -1,9 +1,10 @@
 services:
   - type: web
-    name: url-checker
+    name: virustotal-api
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
     envVars:
-      - key: GOOGLE_API_KEY
-        value: your_real_google_safe_browsing_api_key
+      - key: VT_API_KEY
+        sync: false
