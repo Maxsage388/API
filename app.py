@@ -1,37 +1,32 @@
-from flask import Flask, request, jsonify
-import requests
 import os
+import requests
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
-API_KEY = os.getenv("GOOGLE_API_KEY")
+API_KEY = os.environ.get('VIRUSTOTAL_API_KEY')
 
-@app.route('/check', methods=['POST'])
-def check_url():
+@app.route('/scan', methods=['POST'])
+def scan_url():
     data = request.get_json()
-    url = data.get("url")
+    url = data.get('url')
 
     if not url:
-        return jsonify({"error": "No URL provided"}), 400
+        return jsonify({'error': 'URL is required'}), 400
 
-    safe_browsing_url = "https://safebrowsing.googleapis.com/v4/threatMatches:find?key=" + API_KEY
-    body = {
-        "client": {"clientId": "url-checker", "clientVersion": "1.0"},
-        "threatInfo": {
-            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING"],
-            "platformTypes": ["ANY_PLATFORM"],
-            "threatEntryTypes": ["URL"],
-            "threatEntries": [{"url": url}]
-        }
+    headers = {
+        "x-apikey": API_KEY
     }
-
-    res = requests.post(safe_browsing_url, json=body)
-    if res.status_code != 200:
-        return jsonify({"error": "API request failed"}), 500
-
-    if res.json().get("matches"):
-        return jsonify({"safe": False, "message": "⚠️ Not Safe"})
+    scan_url = "https://www.virustotal.com/api/v3/urls"
+    response = requests.post(scan_url, headers=headers, data={"url": url})
+    
+    if response.status_code == 200:
+        scan_id = response.json()['data']['id']
+        report_url = f"https://www.virustotal.com/api/v3/analyses/{scan_id}"
+        result = requests.get(report_url, headers=headers)
+        return jsonify(result.json())
     else:
-        return jsonify({"safe": True, "message": "✅ Safe"})
+        return jsonify({'error': 'Scan failed', 'details': response.text}), 500
 
-if __name__ == '__main__':
-    app.run()
+@app.route('/')
+def home():
+    return 'VirusTotal URL Scanner API is running.'
