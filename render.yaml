@@ -8,5 +8,5 @@ services:
     envVars:
       - key: MODE
         value: production
-      - key: CUSTOM_API_KEY
-        value: your-api-key-here
+      - key: API_KEY
+        value: 123456-abcDEF-secureKEY987
