@@ -5,3 +5,8 @@ services:
     plan: free
     buildCommand: ""
     startCommand: gunicorn app:app
+    envVars:
+      - key: MODE
+        value: production
+      - key: CUSTOM_API_KEY
+        value: your-api-key-here
