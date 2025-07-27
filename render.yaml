@@ -1,12 +1,9 @@
 services:
   - type: web
-    name: link-safety-api
+    name: url-checker
     env: python
-    plan: free
-    buildCommand: ""
-    startCommand: gunicorn app:app
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
     envVars:
-      - key: MODE
-        value: production
-      - key: API_KEY
-        value: 123456-abcDEF-secureKEY987
+      - key: GOOGLE_API_KEY
+        value: your_real_google_safe_browsing_api_key
